@@ -9,64 +9,6 @@ from openpyxl.workbook import Workbook
 # 'layout="wide"' allows more horizontal space, improving the display for tables and graphs
 st.set_page_config(page_title="Data Sweeper", layout="wide")
 
-# Custom CSS for styling the app with dark mode aesthetics
-# This enhances the UI by setting background colors, button styles, and text formatting
-st.markdown(
-    """
-    <style>
-        .main {
-            background-color: #121212;  /* Overall dark background for the main page */
-        }
-        .block-container {
-            padding: 3rem 2rem;  /* Padding around main container for spacing */
-            border-radius: 12px;  /* Rounds the corners of the container */
-            background-color: #1e1e1e;  /* Slightly lighter shade for contrast */
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);  /* Adds subtle shadow for depth */
-        }
-        h1, h2, h3, h4, h5, h6 {
-            color: #66c2ff;  /* Light blue color for headings to stand out */
-        }
-        .stButton>button {
-            border: none;
-            border-radius: 8px;  /* Rounds button edges */
-            background-color: #0078D7;  /* Primary blue for buttons */
-            color: white;  /* White text for contrast */
-            padding: 0.75rem 1.5rem;  /* Enlarges button for better interaction */
-            font-size: 1rem;  /* Readable button text */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);  /* Shadow for button depth */
-        }
-        .stButton>button:hover {
-            background-color: #005a9e;  /* Darker blue on hover for visual feedback */
-            cursor: pointer;
-        }
-        .stDataFrame, .stTable {
-            border-radius: 10px;  /* Smooth edges for data tables and frames */
-            overflow: hidden;  /* Prevents data from overflowing the container */
-        }
-        .css-1aumxhk, .css-18e3th9 {
-            text-align: left;
-            color: white;  /* Ensures all standard text is white for readability */
-        }
-        .stRadio>label {
-            font-weight: bold;
-            color: white;
-        }
-        .stCheckbox>label {
-            color: white;
-        }
-        .stDownloadButton>button {
-            background-color: #28a745;  /* Green color for download buttons */
-            color: white;
-        }
-        .stDownloadButton>button:hover {
-            background-color: #218838;  /* Darker green on hover for download buttons */
-        }
-    </style>
-    """ ,
-    unsafe_allow_html=True  # 'unsafe_allow_html' permits raw HTML/CSS embedding in the Streamlit app
-)
-
-
 # Display the main app title and introductory text
 st.title("Advanced Data Sweeper")  # Large, eye-catching title
 st.write("Transform your files between CSV and Excel formats with built-in data cleaning and visualization.")
