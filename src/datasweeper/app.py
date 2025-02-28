@@ -33,16 +33,6 @@ if uploaded_files:
         st.write(f"**📄 File Name:** {file.name}")
         st.write(f"**📏 File Size:** {file.size / 1024:.2f} KB")
 
-        # 🔹 Data Cleaning Options
-        st.subheader("🧹 Data Cleaning Options")
-        if st.checkbox(f"Remove Duplicates ({file.name})", key=f"dup_{file.name}"):
-            df = df.drop_duplicates()
-            st.success("✅ Duplicates removed!")
-
-        if st.checkbox(f"Fill Missing Values ({file.name})", key=f"fillna_{file.name}"):
-            df = df.fillna("N/A")
-            st.success("✅ Missing values filled!")
-
         # 🔹 Editable Data Table
         st.subheader("✏️ Edit Data Before Conversion")
         edited_df = st.data_editor(df, num_rows="dynamic", key=f"edit_{file.name}")  # Editable DataFrame
