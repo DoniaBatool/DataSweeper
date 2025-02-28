@@ -1,125 +1,137 @@
 import streamlit as st
 import pandas as pd
 import os
-from io import BytesIO
 import matplotlib.pyplot as plt
-from fpdf import FPDF
-from PIL import Image
+from io import BytesIO
+from reportlab.pdfgen import canvas
 
-# Configure Streamlit app
+# Configure Streamlit page
 st.set_page_config(page_title="Data Sweeper", layout="wide")
 
+# Title and description
+st.title("📊 Advanced Data Sweeper")
+st.write("Convert files into CSV, Excel, PDF, and images (JPG/PNG) with built-in data cleaning and visualization.")
 
-def df_to_pdf(df):
-    buffer = BytesIO()
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    pdf.set_font("Arial", size=10)
+# File uploader
+uploaded_files = st.file_uploader("Upload your files (CSV or Excel):", type=["csv", "xlsx"], accept_multiple_files=True)
 
-    # Table Headers
-    for col in df.columns:
-        pdf.cell(40, 10, col, border=1)
-    pdf.ln()
-
-    # Table Data
-    for _, row in df.iterrows():
-        for col in df.columns:
-            pdf.cell(40, 10, str(row[col]), border=1)
-        pdf.ln()
-
-    pdf.output("temp.pdf")  # Save temporarily
-    with open("temp.pdf", "rb") as f:
-        buffer.write(f.read())  # Write to BytesIO
-
-    buffer.seek(0)
-    return buffer
-
-
-def df_to_image(df, file_format="PNG"):
-    fig, ax = plt.subplots(figsize=(len(df.columns) * 2, len(df) * 0.5))
-    ax.axis('tight')
-    ax.axis('off')
-    ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-
-    buffer = BytesIO()
-    plt.savefig(buffer, format=file_format)
-    buffer.seek(0)
-    return buffer
-
-# Sidebar for language selection
-language_options = {"English": "en", "Arabic": "ar", "Urdu": "ur", "Persian": "fa"}
-language = st.sidebar.selectbox("🌍 Select Language", list(language_options.keys()))
-
-# Language translations
-def translate(text):
-    translations = {
-        "Advanced Data Sweeper": {"ar": "ماسح البيانات المتقدم", "ur": "جدید ڈیٹا سویپر", "fa": "جاروبرقی داده پیشرفته"},
-        "Transform your files between CSV and Excel formats with built-in data cleaning and visualization.": {
-            "ar": "قم بتحويل ملفاتك بين تنسيقات CSV و Excel مع تنظيف البيانات المدمج والتصور.",
-            "ur": "CSV اور Excel فارمیٹس میں اپنی فائلوں کو تبدیل کریں، اندرونی ڈیٹا صفائی اور تصویری نمائندگی کے ساتھ۔",
-            "fa": "تبدیل فایل‌های شما بین فرمت‌های CSV و Excel با پاکسازی داده و نمایش داده‌های داخلی."
-        },
-        "Upload your files (CSV or Excel):": {"ar": "تحميل ملفاتك (CSV أو Excel):", "ur": "اپنی فائلیں اپ لوڈ کریں (CSV یا Excel):", "fa": "بارگذاری فایل‌های خود (CSV یا Excel):"},
-    }
-    return translations.get(text, {}).get(language_options[language], text)
-
-# Display main title and introduction
-st.title(translate("Advanced Data Sweeper"))
-st.write(translate("Transform your files between CSV and Excel formats with built-in data cleaning and visualization."))
-
-uploaded_files = st.file_uploader(translate("Upload your files (CSV or Excel):"), type=["csv", "xlsx"], accept_multiple_files=True)
-
+# Process uploaded files
 if uploaded_files:
     for file in uploaded_files:
         file_extension = os.path.splitext(file.name)[-1].lower()
+        
+        # Read the uploaded file
         if file_extension == ".csv":
             df = pd.read_csv(file)
         elif file_extension == ".xlsx":
             df = pd.read_excel(file)
         else:
-            st.error(f"Unsupported file type: {file_extension}")
+            st.error(f"❌ Unsupported file type: {file_extension}")
             continue
+        
+        # Display file info
+        st.write(f"**📄 File Name:** {file.name}")
+        st.write(f"**📏 File Size:** {file.size / 1024:.2f} KB")
 
-        st.write(f"📄 **{file.name}**")
-        st.write(f"📏 **{file.size / 1024:.2f} KB**")
-        st.write("🔍", translate("Preview of the Uploaded File:"))
-        st.dataframe(df.head())
+        # 🔹 Data Cleaning Options
+        st.subheader("🧹 Data Cleaning Options")
+        if st.checkbox(f"Remove Duplicates ({file.name})", key=f"dup_{file.name}"):
+            df = df.drop_duplicates()
+            st.success("✅ Duplicates removed!")
 
-        st.subheader("🔄 " + translate("Conversion Options"))
-        conversion_type = st.radio(f"{translate('Convert to:')} {file.name}", ["CSV", "Excel", "PDF", "PNG", "JPG"], key=file.name)
-        if st.button(f"{translate('Download')} {file.name}"):
+        if st.checkbox(f"Fill Missing Values ({file.name})", key=f"fillna_{file.name}"):
+            df = df.fillna("N/A")
+            st.success("✅ Missing values filled!")
+
+        # 🔹 Editable Data Table
+        st.subheader("✏️ Edit Data Before Conversion")
+        edited_df = st.data_editor(df, num_rows="dynamic", key=f"edit_{file.name}")  # Editable DataFrame
+
+        # 🔹 Data Visualization (Moved inside the loop)
+        st.subheader("📊 Data Visualization")
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+
+        if numeric_cols:
+            selected_cols = st.multiselect(f"Select Column for Histogram ({file.name}):", numeric_cols, key=f"hist_{file.name}")
+
+            if selected_cols:  
+                fig, ax = plt.subplots()
+
+                # Generate different colors for multiple datasets
+                colors = plt.cm.viridis(range(len(selected_cols)))  
+
+                for col, color in zip(selected_cols, colors):
+                    ax.hist(df[col], bins=20, color=color, edgecolor="black", alpha=0.7, label=col)
+
+                ax.set_title(f"Histogram of Selected Columns")
+                ax.set_xlabel("Value")
+                ax.set_ylabel("Frequency")
+                ax.legend()
+                st.pyplot(fig)
+
+                # 🎨 Image (PNG) Export
+                img_buffer = BytesIO()
+                fig.savefig(img_buffer, format="png")
+                img_buffer.seek(0)
+
+                st.download_button(
+                    label="⬇️ Download Chart as PNG",
+                    data=img_buffer,
+                    file_name=f"{file.name}_chart.png",
+                    mime="image/png"
+                )
+
+        # 🔹 Conversion Options
+        st.subheader("🔄 Conversion Options")
+        conversion_type = st.radio(
+            f"Convert {file.name} to:",
+            ["CSV", "Excel", "PDF", "PNG"],
+            key=f"convert_{file.name}"
+        )
+
+        # Convert and Download
+        if st.button(f"Convert & Download {file.name}"):
             buffer = BytesIO()
-            mime_type = ""
-            new_file_name = file.name.rsplit(".", 1)[0]
-
+            
             if conversion_type == "CSV":
-                df.to_csv(buffer, index=False)
-                new_file_name += ".csv"
+                edited_df.to_csv(buffer, index=False)
+                file_name = file.name.replace(file_extension, ".csv")
                 mime_type = "text/csv"
             elif conversion_type == "Excel":
-                df.to_excel(buffer, index=False, engine='openpyxl')
-                new_file_name += ".xlsx"
+                edited_df.to_excel(buffer, index=False, engine='openpyxl')
+                file_name = file.name.replace(file_extension, ".xlsx")
                 mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             elif conversion_type == "PDF":
-                buffer = df_to_pdf(df)
-                new_file_name += ".pdf"
+                buffer = BytesIO()
+                pdf = canvas.Canvas(buffer)
+                text = pdf.beginText(40, 800)
+                text.setFont("Helvetica", 10)
+                text.textLine(f"Data Preview: {file.name}")
+                for i, row in edited_df.head(20).iterrows():
+                    text.textLine(", ".join(str(x) for x in row[:5]))
+                pdf.drawText(text)
+                pdf.save()
+                buffer.seek(0)
+                file_name = file.name.replace(file_extension, ".pdf")
                 mime_type = "application/pdf"
-            elif conversion_type in ["PNG", "JPG"]:
-                buffer = df_to_image(df, file_format=conversion_type)
-                new_file_name += f".{conversion_type.lower()}"
-                mime_type = f"image/{conversion_type.lower()}"
+            elif conversion_type == "PNG":
+                fig, ax = plt.subplots(figsize=(8, 4))
+                ax.axis("tight")
+                ax.axis("off")
+                table = ax.table(cellText=edited_df.head(10).values, colLabels=edited_df.columns, loc="center", cellLoc="center")
+                fig.savefig(buffer, format="png", bbox_inches="tight")
+                buffer.seek(0)
+                file_name = file.name.replace(file_extension, ".png")
+                mime_type = "image/png"
 
             buffer.seek(0)
-            st.download_button(label=f"⬇️ Download {new_file_name}", data=buffer, file_name=new_file_name, mime=mime_type)
 
-st.success("🎉 " + translate("All files processed successfully!"))
+            # Download button
+            st.download_button(
+                label=f"⬇️ Download {file.name} as {conversion_type}",
+                data=buffer,
+                file_name=file_name,
+                mime=mime_type
+            )
 
-st.markdown(
-    """
-    <div style="text-align: center; margin-top: 50px;">
-        <b>Developed by Donia Batool</b>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.success("🎉 All files processed successfully!")
