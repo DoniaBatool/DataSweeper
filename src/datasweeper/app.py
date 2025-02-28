@@ -47,7 +47,7 @@ if uploaded_files:
             if selected_cols:  
                 fig, ax = plt.subplots()
 
-                # Generate different colors for multiple datasets
+                
                 colors = plt.cm.viridis(range(len(selected_cols)))  
 
                 for col, color in zip(selected_cols, colors):
